@@ -1,5 +1,8 @@
-<div class="chat-layout bg-whatsapp-gray" *ngIf="me(); else loading">
+<div class="flex flex-col h-screen" *ngIf="me(); else loading">
+  <app-top-bar [displayName]="me()?.displayName || ''" (logout)="signOut()"></app-top-bar>
+  <div class="chat-layout bg-whatsapp-gray">
   <!-- Left Sidebar - Contacts -->
+  <app-side-nav></app-side-nav>
   <app-contact-list
     [contacts]="filteredUsers()"
     [selectedUid]="other()?.uid || null"
@@ -8,13 +11,14 @@
     [unreadCount]="unreadCount.bind(this)"
     [currentUserName]="me()?.displayName || ''"
     (signOut)="signOut()"
+    (newChat)="openNewChat()"
     (contactSelected)="selectContact($event)"
   ></app-contact-list>
 
   <!-- Right Chat Area -->
   <div class="chat-right bg-whatsapp-bg bg-whatsapp-pattern" *ngIf="other(); else selectContactView">
     <!-- Chat Header -->
-    <div class="chat-right-header bg-whatsapp-header border-b border-whatsapp-header-border p-3 flex items-center justify-between text-white">
+    <div class="chat-right-header bg-white border-b border-gray-200 p-3 flex items-center justify-between text-gray-800">
       <div class="flex items-center space-x-3">
         <div class="chat-avatar w-10 h-10 avatar-gradient rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
           {{ initials(other()?.displayName) }}
@@ -38,7 +42,8 @@
     </div>
 
     <!-- Messages Container -->
-    <div class="chat-right-messages">
+    <div class="chat-right-messages bg-white">
+      <div *ngIf="errorMsg()" class="px-5 py-2 text-sm text-red-600">{{ errorMsg() }}</div>
       <app-message-list
         [messageGroups]="messageGroups()"
         [isOwn]="isOwnMessage.bind(this)"
@@ -47,7 +52,7 @@
     </div>
 
     <!-- Message Input -->
-    <div class="chat-right-input bg-whatsapp-gray border-t border-gray-300 p-4">
+    <div class="chat-right-input bg-white border-t border-gray-200 p-4">
       <div class="input-wrapper flex items-end space-x-2 mx-auto bg-white rounded-3xl p-3 shadow-sm">
         <button class="input-btn p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
           📎
@@ -72,6 +77,7 @@
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
           </svg>
         </button>
+      </div>
       </div>
     </div>
   </div>

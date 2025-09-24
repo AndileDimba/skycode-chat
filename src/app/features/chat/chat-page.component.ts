@@ -20,11 +20,14 @@ import { groupMessagesByDay, formatTimeHHmm } from '../../core/chat-utils';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ContactListComponent } from './contact-list.component';
 import { MessageListComponent } from './message-list.component';
+import { SideNavComponent } from './side-nav.component';
+import { TopBarComponent } from './top-bar.component';
+import { Router } from '@angular/router';
 
 @Component({
   standalone: true,
   selector: 'app-chat-page',
-  imports: [CommonModule, FormsModule, ContactListComponent, MessageListComponent],
+  imports: [CommonModule, FormsModule, ContactListComponent, MessageListComponent, SideNavComponent, TopBarComponent],
   templateUrl: './chat-page.component.html',
   styleUrls: []
 })
@@ -34,6 +37,7 @@ export class ChatPageComponent implements AfterViewChecked {
   private auth = inject(AuthService);
   private chat = inject(ChatService);
   private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
 
   // State signals
   me = signal<AppUser | null>(null);
@@ -41,6 +45,7 @@ export class ChatPageComponent implements AfterViewChecked {
   other = signal<AppUser | null>(null);
   messages = signal<Message[]>([]);
   threads = signal<Thread[]>([]);
+  errorMsg = signal<string | null>(null);
 
   // UI state
   search = '';
@@ -61,6 +66,8 @@ export class ChatPageComponent implements AfterViewChecked {
           } else {
             this.users.set([]);
             this.threads.set([]);
+            // if auth becomes null while on chat, redirect to login
+            this.router.navigateByUrl('/login');
           }
         });
       },
@@ -107,11 +114,20 @@ export class ChatPageComponent implements AfterViewChecked {
     this.chat
       .messages$(me, other)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((list) => {
-        this.messages.set(list);
-        setTimeout(() => this.scrollToBottom(), 100);
-        // mark as read on new messages
-        this.chat.markThreadAsRead(me.uid, other.uid);
+      .subscribe({
+        next: (list) => {
+          console.log('[chat] messages loaded', { count: list.length, me: me.uid, other: other.uid });
+          this.errorMsg.set(null);
+          this.messages.set(list);
+          setTimeout(() => this.scrollToBottom(), 100);
+          // mark as read on new messages
+          this.chat.markThreadAsRead(me.uid, other.uid);
+        },
+        error: (err) => {
+          console.error('[chat] messages load failed', err);
+          this.errorMsg.set('Unable to load messages. Please check your connection or permissions.');
+          this.messages.set([]);
+        }
       });
   }
 
@@ -119,8 +135,14 @@ export class ChatPageComponent implements AfterViewChecked {
   async selectContact(contact: AppUser) {
     const me = this.me();
     if (!me) return;
-    await this.chat.ensureThread(me.uid, contact.uid);
+    // Show the conversation immediately; ensure the thread in the background
     this.other.set(contact);
+    this.errorMsg.set(null);
+    try {
+      await this.chat.ensureThread(me.uid, contact.uid);
+    } catch {
+      // ignore ensureThread errors for UI responsiveness; send will retry
+    }
     this.newMessage = '';
     // mark as read when opening
     await this.chat.markThreadAsRead(me.uid, contact.uid);
@@ -209,6 +231,17 @@ export class ChatPageComponent implements AfterViewChecked {
   // UI interaction methods
   onSearch() {
     // Debounced search if needed
+  }
+
+  openNewChat() {
+    const list = this.users();
+    const me = this.me();
+    if (!me || list.length === 0) return;
+    // Pick the first available user not currently selected as a simple demo
+    const candidate = list.find(u => !this.other() || u.uid !== this.other()!.uid);
+    if (candidate) {
+      this.selectContact(candidate);
+    }
   }
 
   async sendMessage(event?: KeyboardEvent) {

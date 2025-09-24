@@ -26,6 +26,10 @@ import { AppUser } from '../../core/models';
             </svg>
           </button>
         </div>
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold text-gray-700">Messages</div>
+          <button class="w-6 h-6 flex items-center justify-center rounded-full bg-white border border-gray-300 text-gray-600 hover:bg-gray-100" aria-label="New conversation" (click)="newChat.emit()">+</button>
+        </div>
         <div class="relative">
           <input [(ngModel)]="search" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-whatsapp-green focus:border-transparent text-sm bg-white" placeholder="Search contacts..." />
           <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -69,6 +73,7 @@ export class ContactListComponent {
   @Input() unreadCount?: (u: AppUser) => number;
   @Input() currentUserName: string = '';
   @Output() signOut = new EventEmitter<void>();
+  @Output() newChat = new EventEmitter<void>();
   @Output() contactSelected = new EventEmitter<AppUser>();
 
   search = '';

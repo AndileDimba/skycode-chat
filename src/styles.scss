@@ -128,7 +128,7 @@
   }
 
   .message-bubble {
-    @apply flex p-4 rounded-2xl shadow-sm relative break-words max-w-[70%];
+  @apply flex p-4 rounded-2xl shadow relative break-words max-w-[70%];
   }
 
   .message-text {
