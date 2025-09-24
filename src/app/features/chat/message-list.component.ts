@@ -28,6 +28,14 @@ import { MessageGroup, formatSmartTimestamp } from '../../core/chat-utils';
                     </ng-container>
                   </span>
                 </div>
+                <div class="text-xs text-gray-400 mt-1" *ngIf="isOwn(message)">
+                  <ng-container *ngIf="(message.readBy?.length || 0) > 1; else deliveredOnly">
+                    Read, {{ formatTime(message.createdAt) }}
+                  </ng-container>
+                  <ng-template #deliveredOnly>
+                    Delivered, {{ formatTime(message.createdAt) }}
+                  </ng-template>
+                </div>
               </div>
             </div>
           </ng-container>
