@@ -179,4 +179,13 @@
     }
   }
 }
+/* Layout helpers to keep only messages scrollable */
+.chat-layout { height: 100vh; display: flex; }
+.chat-left { width: 24rem; display: flex; flex-direction: column; }
+.chat-right { flex: 1; display: flex; flex-direction: column; }
+.chat-right-header { flex: 0 0 auto; }
+.chat-right-messages { flex: 1 1 auto; overflow-y: auto; }
+.chat-right-input { flex: 0 0 auto; }
+/* Read ticks */
+.tick-read { color: #2563eb; } /* Tailwind blue-600 */
 /* Add any other fallback styles you need */

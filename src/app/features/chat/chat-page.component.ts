@@ -7,29 +7,33 @@ import {
   ViewChild,
   ElementRef,
   AfterViewChecked,
+  DestroyRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { format } from 'date-fns';
 import { AuthService } from '../../core/auth.service';
 import { ChatService } from '../../core/chat.service';
-import { Firestore, collection, query, orderBy } from '@angular/fire/firestore';
-import { collectionData } from '@angular/fire/firestore';
+// Firestore access now handled in services
 import { AppUser, Message, Thread } from '../../core/models';
+import { groupMessagesByDay, formatTimeHHmm } from '../../core/chat-utils';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ContactListComponent } from './contact-list.component';
+import { MessageListComponent } from './message-list.component';
 
 @Component({
   standalone: true,
   selector: 'app-chat-page',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ContactListComponent, MessageListComponent],
   templateUrl: './chat-page.component.html',
   styleUrls: []
 })
 export class ChatPageComponent implements AfterViewChecked {
-  @ViewChild('messagesContainer') messagesContainer!: ElementRef;
+  @ViewChild(MessageListComponent) messageList?: MessageListComponent;
 
   private auth = inject(AuthService);
   private chat = inject(ChatService);
-  private db = inject(Firestore);
+  private destroyRef = inject(DestroyRef);
 
   // State signals
   me = signal<AppUser | null>(null);
@@ -47,7 +51,9 @@ export class ChatPageComponent implements AfterViewChecked {
     // Auth effect
     effect(
       () => {
-        this.auth.user$.subscribe((u) => {
+        this.auth.user$
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe((u) => {
           this.me.set(u);
           if (u) {
             this.loadUsers(u.uid);
@@ -82,25 +88,31 @@ export class ChatPageComponent implements AfterViewChecked {
 
   // Data loading methods
   loadUsers(myUid: string) {
-    const uCol = collection(this.db, 'users');
-    const q = query(uCol, orderBy('displayName'));
-    collectionData(q, { idField: 'uid' }).subscribe((docs) => {
-      const list = (docs as any[])
-        .map((d) => d as AppUser)
-        .filter((u) => u.uid !== myUid);
-      this.users.set(list);
-    });
+    this.chat
+      .users$()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((list) => {
+        this.users.set(list.filter((u) => u.uid !== myUid));
+      });
   }
 
   loadThreads(myUid: string) {
-    this.chat.threadMeta$(myUid).subscribe((ts) => this.threads.set(ts));
+    this.chat
+      .threadMeta$(myUid)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((ts) => this.threads.set(ts));
   }
 
   async loadMessages(me: AppUser, other: AppUser) {
-    this.chat.messages$(me, other).subscribe((list) => {
-      this.messages.set(list);
-      setTimeout(() => this.scrollToBottom(), 100);
-    });
+    this.chat
+      .messages$(me, other)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((list) => {
+        this.messages.set(list);
+        setTimeout(() => this.scrollToBottom(), 100);
+        // mark as read on new messages
+        this.chat.markThreadAsRead(me.uid, other.uid);
+      });
   }
 
   // Contact management
@@ -110,6 +122,8 @@ export class ChatPageComponent implements AfterViewChecked {
     await this.chat.ensureThread(me.uid, contact.uid);
     this.other.set(contact);
     this.newMessage = '';
+    // mark as read when opening
+    await this.chat.markThreadAsRead(me.uid, contact.uid);
   }
 
   // Computed properties
@@ -124,26 +138,7 @@ export class ChatPageComponent implements AfterViewChecked {
     );
   });
 
-  messageGroups = computed(() => {
-    const msgs = this.messages();
-    const groups: { dateLabel?: string; messages: Message[] }[] = [];
-    let currentDate = '';
-
-    for (const msg of msgs) {
-      const msgDate = new Date(msg.createdAt);
-      const dateKey = format(msgDate, 'yyyy-MM-dd');
-
-      if (dateKey !== currentDate) {
-        currentDate = dateKey;
-        const dateLabel = this.formatDateLabel(msgDate);
-        groups.push({ dateLabel, messages: [] });
-      }
-
-      groups[groups.length - 1].messages.push(msg);
-    }
-
-    return groups;
-  });
+  messageGroups = computed(() => groupMessagesByDay(this.messages()));
 
   // Helper methods
   private threadIdFor(a: string, b: string) {
@@ -165,15 +160,16 @@ export class ChatPageComponent implements AfterViewChecked {
     const thread = this.threads().find((t) => t.id === threadId);
     if (!thread?.lastMessageAt) return null;
 
-    const now = new Date();
     const msgDate = new Date(thread.lastMessageAt);
-    const diffInHours = (now.getTime() - msgDate.getTime()) / (1000 * 60 * 60);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    const sameDay = (a: Date, b: Date) => format(a, 'yyyy-MM-dd') === format(b, 'yyyy-MM-dd');
 
-    if (diffInHours < 24) {
-      return format(msgDate, 'HH:mm');
-    } else {
-      return format(msgDate, 'MMM dd');
-    }
+    if (sameDay(msgDate, today)) return format(msgDate, 'HH:mm');
+    if (sameDay(msgDate, yesterday)) return 'Yesterday';
+    if (msgDate.getFullYear() === today.getFullYear()) return format(msgDate, 'MMM d');
+    return format(msgDate, 'MMM d, yyyy');
   }
 
   unreadCount(contact: AppUser): number {
@@ -195,23 +191,10 @@ export class ChatPageComponent implements AfterViewChecked {
   }
 
   formatMessageTime(timestamp: number): string {
-    const date = new Date(timestamp);
-    return format(date, 'HH:mm');
+    return formatTimeHHmm(timestamp);
   }
 
-  formatDateLabel(date: Date): string {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
-      return 'Today';
-    } else if (format(date, 'yyyy-MM-dd') === format(yesterday, 'yyyy-MM-dd')) {
-      return 'Yesterday';
-    } else {
-      return format(date, 'do MMMM yyyy');
-    }
-  }
+  // formatDateLabel now handled by utility via messageGroups
 
   initials(name?: string): string {
     if (!name) return '?';
@@ -252,10 +235,7 @@ export class ChatPageComponent implements AfterViewChecked {
   }
 
   scrollToBottom() {
-    if (this.messagesContainer) {
-      const container = this.messagesContainer.nativeElement;
-      container.scrollTop = container.scrollHeight;
-    }
+    this.messageList?.scrollToBottom();
   }
 
   async signOut() {
