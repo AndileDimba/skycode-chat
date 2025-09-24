@@ -22,7 +22,7 @@ import { AppUser, Message, Thread } from '../../core/models';
   selector: 'app-chat-page',
   imports: [CommonModule, FormsModule],
   templateUrl: './chat-page.component.html',
-  styleUrls: [] // No component-specific styles needed
+  styleUrls: []
 })
 export class ChatPageComponent implements AfterViewChecked {
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;

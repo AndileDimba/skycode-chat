@@ -107,7 +107,7 @@
 
     <!-- Messages Container -->
     <div class="flex-1 overflow-y-auto p-5 pb-24 custom-scrollbar" #messagesContainer>
-      <div class="messages-content max-w-2xl mx-auto w-full flex flex-col gap-3">
+      <div class="messages-content mx-auto w-full flex flex-col gap-3">
         <!-- Date Separators and Messages -->
         <ng-container *ngFor="let messageGroup of messageGroups()">
           <!-- Date Separator -->
@@ -125,7 +125,7 @@
               [class.justify-start]="!isOwnMessage(message)"
             >
               <div
-                class="message-bubble max-w-[70%] flex flex-col p-3 rounded-2xl shadow-sm relative break-words"
+                class="message-bubble flex-col"
                 [class.bg-whatsapp-light-green]="isOwnMessage(message)"
                 [class.bg-white]="!isOwnMessage(message)"
                 [class.rounded-br-sm]="isOwnMessage(message)"
@@ -135,12 +135,13 @@
                 [class.mr-0]="isOwnMessage(message)"
                 [class.ml-0]="!isOwnMessage(message)"
               >
-                <div class="message-text text-sm text-whatsapp-text leading-relaxed whitespace-pre-wrap mb-1">
+                <div class="w-full min-w-sm max-w-sm" >
                   {{ message.text }}
+                  <span class="min-w-full message-time text-whatsapp-muted"> {{ formatMessageTime(message.createdAt) }}</span>
                 </div>
-                <div class="message-time text-xs text-whatsapp-muted self-end text-right">
+                <!-- <div class="message-time text-xs text-whatsapp-muted self-end text-right">
                   {{ formatMessageTime(message.createdAt) }}
-                </div>
+                </div> -->
               </div>
             </div>
           </ng-container>
@@ -157,12 +158,13 @@
 
     <!-- Message Input -->
     <div class="bg-whatsapp-gray border-t border-gray-300 p-4">
-      <div class="input-wrapper flex items-end space-x-2 max-w-2xl mx-auto bg-white rounded-3xl p-3 shadow-sm">
+      <div class="input-wrapper flex items-end space-x-2 mx-auto bg-white rounded-3xl p-3 shadow-sm">
         <button class="input-btn p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
           📎
         </button>
         <input
           [(ngModel)]="newMessage"
+          type="text"
           class="message-input flex-1 border-none outline-none px-3 py-2 text-sm resize-none max-h-24 min-h-[20px] leading-relaxed"
           placeholder="Type a message..."
           (keydown.enter)="sendMessage($any($event))"
