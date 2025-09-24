@@ -1,4 +1,182 @@
-/* You can add global styles to this file, and also import other style files */
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* WhatsApp Theme Colors */
+@layer components {
+  .bg-whatsapp-gray {
+    @apply bg-gray-100;
+  }
+
+  .bg-whatsapp-bg {
+    @apply bg-gray-50;
+  }
+
+  .bg-whatsapp-pattern {
+    background-image:
+      radial-gradient(circle at 25% 25%, #e6e6e6 2px, transparent 2px),
+      radial-gradient(circle at 75% 75%, #e6e6e6 2px, transparent 2px);
+    background-size: 50px 50px;
+  }
+
+  .bg-whatsapp-header {
+    @apply bg-green-600;
+  }
+
+  .bg-whatsapp-header-border {
+    @apply border-green-500;
+  }
+
+  .bg-whatsapp-light-green {
+    @apply bg-green-100 border border-green-200;
+  }
+
+  .bg-whatsapp-green {
+    @apply bg-green-500;
+  }
+
+  .text-whatsapp-text {
+    @apply text-gray-800;
+  }
+
+  .text-whatsapp-muted {
+    @apply text-gray-500;
+  }
+
+  /* Avatars */
+  .avatar-gradient {
+    @apply bg-gradient-to-r from-purple-500 to-indigo-600;
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+
+  /* Animations */
+  .animate-spin-slow {
+    animation: spin 1.5s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Contact List */
+  .contact-item {
+    @apply transition-colors;
+  }
+
+  .contact-item:hover {
+    @apply bg-gray-50;
+  }
+
+  .contact-avatar {
+    @apply flex items-center justify-center;
+  }
+
+  .contact-name {
+    @apply font-semibold text-sm text-gray-900 truncate;
+  }
+
+  .last-message-preview {
+    @apply text-sm text-gray-600 truncate;
+  }
+
+  .unread-count {
+    @apply text-white text-xs rounded-full w-5 h-5 flex items-center justify-center;
+  }
+
+  /* Chat Header */
+  .chat-avatar {
+    @apply flex items-center justify-center;
+  }
+
+  .chat-username {
+    @apply font-semibold text-sm truncate;
+  }
+
+  .chat-status {
+    @apply text-xs opacity-90;
+  }
+
+  .header-btn {
+    @apply p-2 text-white rounded-full transition-colors;
+  }
+
+  .header-btn:hover {
+    @apply bg-white/10;
+  }
+
+  /* Messages */
+  .message-wrapper {
+    @apply flex w-full mb-1;
+  }
+
+  .message-bubble {
+    @apply flex flex-col p-3 rounded-2xl shadow-sm relative break-words max-w-[70%];
+  }
+
+  .message-text {
+    @apply text-sm leading-relaxed whitespace-pre-wrap mb-1;
+  }
+
+  .message-time {
+    @apply text-xs self-end text-right;
+  }
+
+  /* Input Area */
+  .input-wrapper {
+    @apply flex items-end space-x-2;
+  }
+
+  .input-btn {
+    @apply p-2 rounded-full transition-colors flex-shrink-0;
+  }
+
+  .input-btn:hover {
+    @apply bg-gray-100;
+  }
+
+  .message-input {
+    @apply flex-1 border-none outline-none px-3 py-2 text-sm resize-none max-h-24 min-h-[20px] leading-relaxed;
+  }
+
+  .send-btn {
+    @apply w-9 h-9 text-white rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .send-btn:hover:not(:disabled) {
+    @apply bg-blue-600;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .w-96 {
+      width: 100%;
+    }
+
+    .max-w-2xl {
+      @apply max-w-full px-4;
+    }
+
+    .message-bubble {
+      @apply max-w-[85%];
+    }
+  }
+}
+/* Add any other fallback styles you need */
