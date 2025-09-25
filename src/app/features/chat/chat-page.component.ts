@@ -14,7 +14,6 @@ import { FormsModule } from '@angular/forms';
 import { format } from 'date-fns';
 import { AuthService } from '../../core/auth.service';
 import { ChatService } from '../../core/chat.service';
-// Firestore access now handled in services
 import { AppUser, Message, Thread } from '../../core/models';
 import { groupMessagesByDay, formatTimeHHmm } from '../../core/chat-utils';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -27,9 +26,16 @@ import { Router } from '@angular/router';
 @Component({
   standalone: true,
   selector: 'app-chat-page',
-  imports: [CommonModule, FormsModule, ContactListComponent, MessageListComponent, SideNavComponent, TopBarComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ContactListComponent,
+    MessageListComponent,
+    SideNavComponent,
+    TopBarComponent,
+  ],
   templateUrl: './chat-page.component.html',
-  styleUrls: []
+  styleUrls: [],
 })
 export class ChatPageComponent implements AfterViewChecked {
   @ViewChild(MessageListComponent) messageList?: MessageListComponent;
@@ -39,7 +45,6 @@ export class ChatPageComponent implements AfterViewChecked {
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
 
-  // State signals
   me = signal<AppUser | null>(null);
   users = signal<AppUser[]>([]);
   other = signal<AppUser | null>(null);
@@ -47,34 +52,30 @@ export class ChatPageComponent implements AfterViewChecked {
   threads = signal<Thread[]>([]);
   errorMsg = signal<string | null>(null);
 
-  // UI state
   search = '';
   newMessage = '';
   showEmojiPicker = false;
 
   constructor() {
-    // Auth effect
     effect(
       () => {
         this.auth.user$
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe((u) => {
-          this.me.set(u);
-          if (u) {
-            this.loadUsers(u.uid);
-            this.loadThreads(u.uid);
-          } else {
-            this.users.set([]);
-            this.threads.set([]);
-            // if auth becomes null while on chat, redirect to login
-            this.router.navigateByUrl('/login');
-          }
-        });
+            this.me.set(u);
+            if (u) {
+              this.loadUsers(u.uid);
+              this.loadThreads(u.uid);
+            } else {
+              this.users.set([]);
+              this.threads.set([]);
+              this.router.navigateByUrl('/login');
+            }
+          });
       },
       { allowSignalWrites: true }
     );
 
-    // Messages effect
     effect(
       () => {
         const me = this.me();
@@ -93,7 +94,6 @@ export class ChatPageComponent implements AfterViewChecked {
     this.scrollToBottom();
   }
 
-  // Data loading methods
   loadUsers(myUid: string) {
     this.chat
       .users$()
@@ -116,39 +116,54 @@ export class ChatPageComponent implements AfterViewChecked {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (list) => {
-          console.log('[chat] messages loaded', { count: list.length, me: me.uid, other: other.uid });
+          console.log('[chat] messages loaded', {
+            count: list.length,
+            me: me.uid,
+            other: other.uid,
+          });
           this.errorMsg.set(null);
           this.messages.set(list);
           setTimeout(() => this.scrollToBottom(), 100);
-          // mark as read on new messages
           this.chat.markThreadAsRead(me.uid, other.uid);
         },
         error: (err) => {
           console.error('[chat] messages load failed', err);
-          this.errorMsg.set('Unable to load messages. Please check your connection or permissions.');
+          this.errorMsg.set(
+            'Unable to load messages. Please check your connection or permissions.'
+          );
           this.messages.set([]);
-        }
+        },
       });
   }
 
-  // Contact management
   async selectContact(contact: AppUser) {
-    const me = this.me();
-    if (!me) return;
-    // Show the conversation immediately; ensure the thread in the background
-    this.other.set(contact);
-    this.errorMsg.set(null);
-    try {
-      await this.chat.ensureThread(me.uid, contact.uid);
-    } catch {
-      // ignore ensureThread errors for UI responsiveness; send will retry
-    }
-    this.newMessage = '';
-    // mark as read when opening
-    await this.chat.markThreadAsRead(me.uid, contact.uid);
+  const me = this.me();
+  
+  this.assertUid(me?.uid);
+  this.assertUid(contact?.uid);
+
+  if (!me) return;
+  
+  this.errorMsg.set(null);
+  
+  try {
+    await this.chat.ensureThread(me.uid, contact.uid);
+  } catch (e: any) {
+    console.error('❌ selectContact - ensureThread failed', e?.code, e?.message, e);
+    this.errorMsg.set('Could not create conversation. Check rules/permissions.');
+    return;
   }
 
-  // Computed properties
+  this.other.set(contact);
+  this.newMessage = '';
+
+  try {
+    await this.chat.markThreadAsRead(me.uid, contact.uid);
+  } catch (e) {
+    console.error('markThreadAsRead failed (non-blocking)', e);
+  }
+}
+
   filteredUsers = computed(() => {
     const term = this.search.toLowerCase().trim();
     const list = this.users();
@@ -162,7 +177,6 @@ export class ChatPageComponent implements AfterViewChecked {
 
   messageGroups = computed(() => groupMessagesByDay(this.messages()));
 
-  // Helper methods
   private threadIdFor(a: string, b: string) {
     return [a, b].sort().join('_');
   }
@@ -186,11 +200,13 @@ export class ChatPageComponent implements AfterViewChecked {
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
-    const sameDay = (a: Date, b: Date) => format(a, 'yyyy-MM-dd') === format(b, 'yyyy-MM-dd');
+    const sameDay = (a: Date, b: Date) =>
+      format(a, 'yyyy-MM-dd') === format(b, 'yyyy-MM-dd');
 
     if (sameDay(msgDate, today)) return format(msgDate, 'HH:mm');
     if (sameDay(msgDate, yesterday)) return 'Yesterday';
-    if (msgDate.getFullYear() === today.getFullYear()) return format(msgDate, 'MMM d');
+    if (msgDate.getFullYear() === today.getFullYear())
+      return format(msgDate, 'MMM d');
     return format(msgDate, 'MMM d, yyyy');
   }
 
@@ -216,8 +232,6 @@ export class ChatPageComponent implements AfterViewChecked {
     return formatTimeHHmm(timestamp);
   }
 
-  // formatDateLabel now handled by utility via messageGroups
-
   initials(name?: string): string {
     if (!name) return '?';
     const parts = name.trim().split(' ').filter(Boolean);
@@ -228,9 +242,11 @@ export class ChatPageComponent implements AfterViewChecked {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
-  // UI interaction methods
   onSearch() {
-    // Debounced search if needed
+  }
+
+  private assertUid(u?: string) {
+    if (!u) throw new Error('Missing UID');
   }
 
   openNewChat() {
@@ -238,7 +254,9 @@ export class ChatPageComponent implements AfterViewChecked {
     const me = this.me();
     if (!me || list.length === 0) return;
     // Pick the first available user not currently selected as a simple demo
-    const candidate = list.find(u => !this.other() || u.uid !== this.other()!.uid);
+    const candidate = list.find(
+      (u) => !this.other() || u.uid !== this.other()!.uid
+    );
     if (candidate) {
       this.selectContact(candidate);
     }

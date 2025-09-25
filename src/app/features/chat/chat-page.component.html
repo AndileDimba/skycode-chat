@@ -1,7 +1,6 @@
 <div class="flex flex-col h-screen" *ngIf="me(); else loading">
   <app-top-bar [displayName]="me()?.displayName || ''" (logout)="signOut()"></app-top-bar>
   <div class="chat-layout bg-whatsapp-gray">
-  <!-- Left Sidebar - Contacts -->
   <app-side-nav></app-side-nav>
   <app-contact-list
     [contacts]="filteredUsers()"
@@ -15,9 +14,9 @@
     (contactSelected)="selectContact($event)"
   ></app-contact-list>
 
-  <!-- Right Chat Area -->
+
   <div class="chat-right bg-whatsapp-bg bg-whatsapp-pattern" *ngIf="other(); else selectContactView">
-    <!-- Chat Header -->
+    
     <div class="chat-right-header bg-white border-b border-gray-200 p-3 flex items-center justify-between text-gray-800">
       <div class="flex items-center space-x-3">
         <div class="chat-avatar w-10 h-10 avatar-gradient rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
@@ -41,7 +40,6 @@
       </div>
     </div>
 
-    <!-- Messages Container -->
     <div class="chat-right-messages bg-white">
       <div *ngIf="errorMsg()" class="px-5 py-2 text-sm text-red-600">{{ errorMsg() }}</div>
       <app-message-list
@@ -51,7 +49,6 @@
       ></app-message-list>
     </div>
 
-    <!-- Message Input -->
     <div class="chat-right-input bg-white border-t border-gray-200 p-4">
       <div class="input-wrapper flex items-end space-x-2 mx-auto bg-white rounded-3xl p-3 shadow-sm">
         <button class="input-btn p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
@@ -83,7 +80,6 @@
   </div>
 </div>
 
-<!-- Template References -->
 <ng-template #loading>
   <div class="min-h-screen bg-whatsapp-gray flex items-center justify-center">
     <div class="flex flex-col items-center space-y-4 text-gray-600">
