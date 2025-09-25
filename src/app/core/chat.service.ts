@@ -57,7 +57,6 @@ export class ChatService {
     };
     await addDoc(mCol, msg);
 
-    // Update thread metadata
     const tRef = doc(this.db, 'threads', threadId);
     await setDoc(tRef, {
       lastMessageText: text,

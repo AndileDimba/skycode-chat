@@ -31,10 +31,8 @@ export function groupMessagesByDay(messages: Message[]): MessageGroup[] {
       let dateLabel = getDateLabel(msgDate);
       if (!isSameWeek(msgDate, today, { weekStartsOn: 1 })) {
         if (isSameMonth(msgDate, today)) {
-          // Earlier this month but not this week
           dateLabel = 'Earlier this month';
         } else {
-          // In a previous month/year, keep full date
           dateLabel = format(msgDate, 'do MMMM yyyy');
         }
       } else if (msgDate < thisWeekStart) {
